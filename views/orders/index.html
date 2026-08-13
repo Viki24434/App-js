@@ -1,0 +1,161 @@
+<style>
+    .header-action { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .header-text h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--header-text-color); }
+    .header-text p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    
+    .filter-wrapper { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+    .filter-item { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 6px; }
+    .filter-item label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-item input { margin-bottom: 0; border: 1px solid var(--border-color); background: var(--bg-body); height: 42px; }
+    .btn-search { height: 42px; padding: 0 24px; font-size: 13px; font-weight: 600; border-radius: 12px; }
+    
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .action-group { display: flex; gap: 8px; justify-content: center; }
+    
+    .btn-icon { width: 34px; height: 34px; border-radius: 10px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; color: #fff; }
+    .btn-icon:hover { transform: translateY(-2px); }
+    .btn-icon i { font-size: 16px; }
+    
+    .btn-detail { background: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); }
+    .btn-payment { background: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
+    .btn-pdf { background: #ef4444; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); }
+    .btn-print { background: #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
+    .btn-disabled { background: #e2e8f0; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
+    .btn-disabled:hover { transform: none; }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @media (max-width: 768px) {
+        .order-container { padding: 15px; }
+        .header-action { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .btn-primary { width: 100%; text-align: center; }
+        .filter-card { flex-direction: column; align-items: stretch; }
+        .table-container { overflow-x: auto; padding: 10px; }
+        .table-modern th, .table-modern td { white-space: nowrap; }
+        .modal-box { width: 95% !important; padding: 20px; }
+    }
+    .print-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column; }
+    .spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top: 5px solid #f59e0b; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+</style>
+
+<div class="header-action">
+    <div class="header-text">
+        <h2>Riwayat Pesanan</h2>
+        <p>Daftar seluruh transaksi dan status pembayaran</p>
+    </div>
+    <button onclick="window.loadPage('order-create')" class="btn btn-success" style="height: 42px; padding: 0 20px;">
+        <i class="fas fa-plus" style="margin-right: 6px;"></i> Buat Pesanan Baru
+    </button>
+</div>
+
+<div class="card">
+    <div class="filter-wrapper">
+        <div class="filter-item">
+            <label>Dari Tanggal</label>
+            <input type="date" id="filter-start">
+        </div>
+        <div class="filter-item">
+            <label>Sampai Tanggal</label>
+            <input type="date" id="filter-end">
+        </div>
+        <div class="filter-item" style="flex: 2;">
+            <label>Pencarian</label>
+            <input type="text" id="filter-search" placeholder="Cari No. Invoice atau Nama...">
+        </div>
+        <div class="filter-item" style="flex: 0;">
+            <button onclick="window.initOrderPage()" class="btn btn-info btn-search">
+                <i class="fas fa-search" style="margin-right: 6px;"></i> Cari
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>No. Invoice</th>
+                    <th>Pelanggan</th>
+                    <th>Total Tagihan</th>
+                    <th style="text-align:center;">Status</th>
+                    <th>Tanggal</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="order-list-body">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-box large">
+        <div class="modal-close" onclick="window.closeModal('detailModal')"><i class="fas fa-times"></i></div>
+        <h3 style="margin-bottom: 20px; color: var(--header-text-color);" id="detailTitle">Detail Pesanan</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Harga</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody id="detailBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-box">
+        <div class="modal-close" onclick="window.closeModal('paymentModal')"><i class="fas fa-times"></i></div>
+        <h3 style="margin-bottom: 20px; color: var(--header-text-color);">Form Pembayaran</h3>
+        
+        <input type="hidden" id="pay_order_id">
+        <input type="hidden" id="pay_sisa_tagihan"> 
+
+        <div class="form-group">
+            <label>Sisa Tagihan yang Belum Dibayar</label>
+            <input type="text" id="pay_total" readonly style="font-weight:bold; color:#ef4444; border:none; background: rgba(239, 68, 68, 0.1);">
+        </div>
+        
+        <div class="form-group">
+            <label>Nominal Bayar</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="pay_nominal" placeholder="Masukkan jumlah bayar" style="flex: 1;" oninput="window.checkPaymentStatus()">
+                <button type="button" class="btn btn-success" style="height: 42px;" onclick="window.setLunas()">
+                    <i class="fas fa-check-double" style="margin-right: 6px;"></i> Lunaskan
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Metode Pembayaran</label>
+            <select id="pay_method">
+                <option value="Cash">Cash</option>
+                <option value="Transfer">Transfer</option>
+                <option value="QRIS">QRIS</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Status Pembayaran</label>
+            <input type="text" id="pay_info" readonly style="font-weight:bold; border:none; background: var(--bg-body);">
+        </div>
+        
+        <button class="btn btn-primary" style="width: 100%; justify-content: center; height: 45px; font-size: 14px; margin-top: 10px;" onclick="window.submitPayment()">
+            <i class="fas fa-save" style="margin-right: 6px;"></i> Simpan Pembayaran
+        </button>
+    </div>
+</div>
+
+<iframe id="thermalFrame" style="display:none;"></iframe>
+
+<div class="modal-overlay" id="loadingPrint">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <h3 style="color: #fff; margin-top: 20px; font-weight: 500;" id="loadingText">Memproses Struk...</h3>
+    </div>
+</div>

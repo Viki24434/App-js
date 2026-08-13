@@ -1,0 +1,51 @@
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2><i class="fas fa-desktop"></i> Kasir / Transaksi Baru</h2>
+    <button class="btn btn-secondary" onclick="loadPage('order')"><i class="fas fa-arrow-left"></i> Kembali</button>
+</div>
+
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+    <div class="card" style="flex: 2; min-width: 300px;">
+        <input type="text" id="pos-search" placeholder="Cari nama atau scan barcode..." style="margin-bottom: 15px; font-size: 16px;">
+        <div id="pos-product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 500px; overflow-y: auto; padding-right: 5px;">
+            </div>
+    </div>
+
+    <div class="card" style="flex: 1; min-width: 300px; background: #f8fafc;">
+        <h3 style="margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">Keranjang</h3>
+        
+        <div class="form-group">
+            <input type="text" id="pos-customer" placeholder="Nama Pelanggan (Kosongkan jika Umum)">
+        </div>
+
+        <table style="width: 100%; margin-bottom: 15px; font-size: 12px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Item</th>
+                    <th style="width: 50px;">Qty</th>
+                    <th style="text-align: right;">Sub</th>
+                    <th style="width: 30px;"></th>
+                </tr>
+            </thead>
+            <tbody id="pos-cart-body">
+                <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Keranjang kosong</td></tr>
+            </tbody>
+        </table>
+
+        <div style="border-top: 2px dashed #cbd5e1; padding-top: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>Subtotal</span><strong id="pos-subtotal">Rp 0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>Diskon (Rp)</span>
+                <input type="number" id="pos-discount" value="0" style="width: 100px; padding: 4px; text-align: right; margin: 0;">
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 18px; color: var(--primary);">
+                <strong>TOTAL</strong><strong id="pos-total">Rp 0</strong>
+            </div>
+        </div>
+
+        <button id="btn-process-order" class="btn btn-success" style="width: 100%; justify-content: center; padding: 15px; font-size: 16px; margin-top: 20px;">
+            <i class="fas fa-check-circle"></i> Proses Pembayaran
+        </button>
+    </div>
+</div>
