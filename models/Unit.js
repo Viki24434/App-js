@@ -1,22 +1,26 @@
-const { pool } = require('../config/db');
+const { getDbConnection } = require('../config/db');
 
 async function getAll() {
-    const [rows] = await pool.query("SELECT * FROM units ORDER BY name ASC");
+    const db = await getDbConnection();
+    const rows = await db.all("SELECT * FROM units ORDER BY name ASC");
     return rows;
 }
 
 async function create(data) {
-    const [result] = await pool.query("INSERT INTO units (name, symbol) VALUES (?, ?)", [data.name, data.symbol]);
+    const db = await getDbConnection();
+    const result = await db.run("INSERT INTO units (name, symbol) VALUES (?, ?)", [data.name, data.symbol]);
     return result;
 }
 
 async function remove(id) {
-    const [result] = await pool.query("DELETE FROM units WHERE id = ?", [id]);
+    const db = await getDbConnection();
+    const result = await db.run("DELETE FROM units WHERE id = ?", [id]);
     return result;
 }
 
 async function update(id, data) {
-    const [result] = await pool.query("UPDATE units SET name = ?, symbol = ? WHERE id = ?", [data.name, data.symbol, id]);
+    const db = await getDbConnection();
+    const result = await db.run("UPDATE units SET name = ?, symbol = ? WHERE id = ?", [data.name, data.symbol, id]);
     return result;
 }
 

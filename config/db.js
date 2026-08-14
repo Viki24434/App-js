@@ -1,38 +1,43 @@
-
-const mysql = require('mysql2/promise');
+const sqlite3 = require('sqlite3').verbose();
+const { open } = require('sqlite');
 const fs = require('fs');
 const path = require('path');
 
-const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'db_percetakan',
-    port: 2026,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    multipleStatements: true
-});
+let dbInstance = null;
+
+async function getDbConnection() {
+    if (!dbInstance) {
+        dbInstance = await open({
+            filename: path.join(__dirname, '..', 'db_percetakan.sqlite'),
+            driver: sqlite3.Database
+        });
+        
+        await dbInstance.run('PRAGMA foreign_keys = ON');
+    }
+    return dbInstance;
+}
 
 async function inisialisasiDatabase() {
     try {
-        await pool.query(`CREATE DATABASE IF NOT EXISTS db_percetakan`);
-        
-        await pool.query(`USE db_percetakan`);
+        const db = await getDbConnection();
+        const fs = require('fs');
+        const path = require('path');
 
-        const [rows] = await pool.query(`SHOW TABLES LIKE 'users'`);
+        const userTable = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users'`);
 
-        if (rows.length === 0) {
+        if (!userTable) {
             console.log('Menyiapkan struktur awal tabel dari database.sql...');
             
             const sqlFilePath = path.join(__dirname, '..', 'database.sql');
             
             if (fs.existsSync(sqlFilePath)) {
-                const sqlFileContent = fs.readFileSync(sqlFilePath, 'utf8');
-                
-                await pool.query(sqlFileContent);
-                console.log('Berhasil mengimpor struktur dan data dari database.sql!');
+                try {
+                    const sqlFileContent = fs.readFileSync(sqlFilePath, 'utf8');
+                    await db.exec(sqlFileContent);
+                    console.log('Berhasil mengimpor struktur dan data dari database.sql!');
+                } catch (err) {
+                    console.error('Gagal eksekusi database.sql:', err.message);
+                }
             } else {
                 console.error('Peringatan: File database.sql tidak ditemukan di direktori utama.');
             }
@@ -41,46 +46,44 @@ async function inisialisasiDatabase() {
         }
         
         try {
-            const [colRows] = await pool.query("SHOW COLUMNS FROM products LIKE 'img'");
-            if (colRows.length === 0) {
-                console.log('Menambahkan kolom `img` ke tabel products...');
-                await pool.query("ALTER TABLE products ADD COLUMN img varchar(255) DEFAULT 'default.png'");
-                console.log('Kolom `img` berhasil ditambahkan.');
-            }
-        } catch (e) {
-        }
-        try {
-            const [catCol] = await pool.query("SELECT EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'categories' AND COLUMN_NAME = 'id'");
-            if (!catCol || catCol.length === 0 || (catCol[0].EXTRA || '').toLowerCase().indexOf('auto_increment') === -1) {
-                try {
-                    console.log('Memperbarui struktur kolom id pada tabel categories...');
-                    await pool.query("ALTER TABLE categories MODIFY id int NOT NULL AUTO_INCREMENT PRIMARY KEY");
-                } catch (e) {
-                    console.warn('Gagal mengubah categories.id:', e.message);
+            const columns = await db.all(`PRAGMA table_info(products)`);
+            if (columns.length > 0) {
+                const hasImgColumn = columns.some(col => col.name === 'img');
+                if (!hasImgColumn) {
+                    console.log('Menambahkan kolom img ke tabel products...');
+                    await db.run(`ALTER TABLE products ADD COLUMN img TEXT DEFAULT 'default.png'`);
+                    console.log('Kolom img berhasil ditambahkan.');
                 }
             }
         } catch (e) {
+            console.error('Peringatan: Gagal mengecek/menambah kolom img:', e.message);
         }
 
         try {
-            const [unitCol] = await pool.query("SELECT EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'units' AND COLUMN_NAME = 'id'");
-            if (!unitCol || unitCol.length === 0 || (unitCol[0].EXTRA || '').toLowerCase().indexOf('auto_increment') === -1) {
-                try {
-                    console.log('Memperbarui struktur kolom id pada tabel units...');
-                    await pool.query("ALTER TABLE units MODIFY id int NOT NULL AUTO_INCREMENT PRIMARY KEY");
-                } catch (e) {
-                    console.warn('Gagal mengubah units.id:', e.message);
-                }
+            await db.run(`CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                name TEXT, 
+                username TEXT, 
+                password TEXT, 
+                role TEXT
+            )`);
+            
+            const cekUser = await db.get("SELECT COUNT(*) as total FROM users");
+            if (cekUser.total === 0) {
+                await db.run("INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, ?)", ['Administrator', 'admin', 'admin', 'Super Admin']);
             }
         } catch (e) {
+            console.error('Gagal membuat atau mengecek user admin:', e.message);
         }
-        console.log('Database MariaDB siap dan terhubung di port 2026.');
+
+        console.log('Database SQLite siap digunakan.');
     } catch (error) {
-        console.error('Gagal inisialisasi database MariaDB:', error.message);
+        console.error('Gagal inisialisasi database SQLite:', error.message);
     }
 }
 
+// Ekspor koneksi dan fungsi inisialisasi
 module.exports = {
-    pool,
+    getDbConnection,
     inisialisasiDatabase
 };

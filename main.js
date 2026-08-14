@@ -1,9 +1,7 @@
-// main.js
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 const fs = require('fs'); 
-const { inisialisasiDatabase, pool } = require('./config/db');
+const { inisialisasiDatabase, getDbConnection } = require('./config/db');
 const os = require('os');
 const crypto = require('crypto');
 const sharp = require('sharp');
@@ -71,34 +69,39 @@ const Finance = require('./models/Finance');
 
 ipcMain.handle('get-dashboard-data', async () => {
     try {
-        const [[{ omzet }]] = await pool.query("SELECT COALESCE(SUM(total_amount), 0) as omzet FROM orders WHERE DATE(created_at) = CURDATE()");
-        const [[{ transaksi }]] = await pool.query("SELECT COUNT(id) as transaksi FROM orders WHERE DATE(created_at) = CURDATE()");
-        const [[{ piutang }]] = await pool.query(`
+        const db = await getDbConnection();
+        
+        // SQLite Query penyesuaian dari CURDATE() ke date('now')
+        const { omzet } = await db.get("SELECT COALESCE(SUM(total_amount), 0) as omzet FROM orders WHERE date(created_at) = date('now', 'localtime')") || { omzet: 0 };
+        const { transaksi } = await db.get("SELECT COUNT(id) as transaksi FROM orders WHERE date(created_at) = date('now', 'localtime')") || { transaksi: 0 };
+        const { piutang } = await db.get(`
             SELECT COALESCE(SUM(o.total_amount - COALESCE((SELECT SUM(amount) FROM payments WHERE order_id = o.id), 0)), 0) as piutang 
             FROM orders o WHERE o.payment_status != 'Lunas'
-        `);
+        `) || { piutang: 0 };
         
-        const [lowStocks] = await pool.query("SELECT name, stock FROM products WHERE stock <= 10 ORDER BY stock ASC LIMIT 5");
-        const [recentOrders] = await pool.query("SELECT invoice_number, customer_name, total_amount, payment_status, created_at FROM orders ORDER BY created_at DESC LIMIT 5");
+        const lowStocks = await db.all("SELECT name, stock FROM products WHERE stock <= 10 ORDER BY stock ASC LIMIT 5");
+        const recentOrders = await db.all("SELECT invoice_number, customer_name, total_amount, payment_status, created_at FROM orders ORDER BY created_at DESC LIMIT 5");
         
-        const [topProducts] = await pool.query(`
+        const topProducts = await db.all(`
             SELECT p.name, SUM(oi.qty) as sold 
             FROM order_items oi 
             JOIN orders o ON oi.order_id = o.id 
             JOIN products p ON oi.product_id = p.id 
-            WHERE MONTH(o.created_at) = MONTH(CURDATE()) AND YEAR(o.created_at) = YEAR(CURDATE())
+            WHERE strftime('%Y-%m', o.created_at) = strftime('%Y-%m', 'now', 'localtime')
             GROUP BY p.id ORDER BY sold DESC LIMIT 5
         `);
 
-        const [chartRows] = await pool.query(`
-            SELECT DATE_FORMAT(created_at, '%b') as month, SUM(total_amount) as total 
+        const chartRows = await db.all(`
+            SELECT strftime('%m', created_at) as month_num, SUM(total_amount) as total 
             FROM orders 
-            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH) 
-            GROUP BY YEAR(created_at), MONTH(created_at) 
-            ORDER BY YEAR(created_at), MONTH(created_at)
+            WHERE date(created_at) >= date('now', 'localtime', '-5 month') 
+            GROUP BY strftime('%Y-%m', created_at) 
+            ORDER BY strftime('%Y-%m', created_at)
         `);
 
-        const chartLabels = chartRows.map(r => r.month);
+        // Konversi angka bulan jadi nama bulan di Javascript (Karena SQLite tidak punya %b)
+        const namaBulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+        const chartLabels = chartRows.map(r => namaBulan[parseInt(r.month_num) - 1]);
         const chartData = chartRows.map(r => parseFloat(r.total));
 
         return {
@@ -113,54 +116,32 @@ ipcMain.handle('get-dashboard-data', async () => {
             chartData: chartData.length > 0 ? chartData : [parseFloat(omzet)]
         };
     } catch (e) {
+        console.error("Dashboard error:", e);
         return null;
     }
 });
 
 ipcMain.handle('get-finance-summary', async (event, filter) => {
-    try {
-        return await Finance.getSummary(filter.start, filter.end);
-    } catch (e) {
-        return null;
-    }
+    try { return await Finance.getSummary(filter.start, filter.end); } catch (e) { return null; }
 });
-
 ipcMain.handle('store-income', async (event, data) => {
-    try {
-        await Finance.storeIncome(data);
-        return true;
-    } catch (e) {
-        return false;
-    }
+    try { await Finance.storeIncome(data); return true; } catch (e) { return false; }
 });
-
 ipcMain.handle('store-expenditure', async (event, data) => {
-    try {
-        await Finance.storeExpenditure(data);
-        return true;
-    } catch (e) {
-        return false;
-    }
+    try { await Finance.storeExpenditure(data); return true; } catch (e) { return false; }
 });
-
-ipcMain.handle('get-customers', async () => {
-    return await Customer.getCustomers(); 
-});
-ipcMain.handle('get-users', async () => {
-    return await User.getAll();
-});
-
-
+ipcMain.handle('get-customers', async () => await Customer.getCustomers());
+ipcMain.handle('get-users', async () => await User.getAll());
 
 ipcMain.handle('auth-login', async (event, credentials) => {
     try {
-        const [rows] = await pool.query("SELECT * FROM users WHERE username = ?", [credentials.username]);
+        const db = await getDbConnection();
+        const user = await db.get("SELECT * FROM users WHERE username = ?", [credentials.username]);
         
-        if (rows.length === 0) {
+        if (!user) {
             return { success: false, message: 'Username tidak ditemukan!' };
         }
 
-        const user = rows[0];
         let isMatch = false;
         let dbPassword = user.password;
 
@@ -191,28 +172,25 @@ ipcMain.handle('auth-login', async (event, credentials) => {
     }
 });
 
-ipcMain.handle('auth-logout', async () => {
-    return true; 
-});
-
-ipcMain.handle('check-auth', async () => {
-    return null; 
-});
+ipcMain.handle('auth-logout', async () => {return true});
+ipcMain.handle('check-auth', async () => {return null});
 
 ipcMain.handle('get-settings', async () => {
     try {
-        const [rows] = await pool.query("SELECT * FROM stores WHERE id = 1");
-        return rows[0] || {};
+        const db = await getDbConnection();
+        const row = await db.get("SELECT * FROM stores WHERE id = 1");
+        return row || {};
     } catch (e) {
-        return { store_name: 'Percetakan Default' }; // Fallback
+        return { name: 'Percetakan Default' }; // Fallback
     }
 });
 
 ipcMain.handle('save-settings', async (event, data) => {
     try {
-        await pool.query(
-            "UPDATE stores SET name=?, phone=?, address=?, footer_note=? WHERE id=1", 
-            [data.store_name, data.phone, data.address, data.footer_note]
+        const db = await getDbConnection();
+        await db.run(
+            "UPDATE stores SET name=?, phone=?, address=?, logo=? WHERE id=1", 
+            [data.store_name, data.phone, data.address, data.logo || 'default.png']
         );
         return true;
     } catch (e) {
@@ -221,75 +199,35 @@ ipcMain.handle('save-settings', async (event, data) => {
     }
 });
 
-ipcMain.handle('get-products', async () => await Product.getAll()); //
+ipcMain.handle('get-products', async () => await Product.getAll()); 
 ipcMain.handle('get-categories', async () => await Category.getAll());
 ipcMain.handle('create-category', async (event, data) => {
-    try {
-        await Category.create(data);
-        return true;
-    } catch (e) {
-        console.error('create-category error', e);
-        return false;
-    }
+    try { await Category.create(data); return true; } catch (e) { return false; }
 });
 ipcMain.handle('update-category', async (event, id, data) => {
-    try {
-        await Category.update(id, data);
-        return true;
-    } catch (e) {
-        console.error('update-category error', e);
-        return false;
-    }
+    try { await Category.update(id, data); return true; } catch (e) { return false; }
 });
 ipcMain.handle('delete-category', async (event, id) => {
-    try {
-        await Category.remove(id);
-        return true;
-    } catch (e) {
-        console.error('delete-category error', e);
-        return false;
-    }
+    try { await Category.remove(id); return true; } catch (e) { return false; }
 });
 
 ipcMain.handle('get-units', async () => await Unit.getAll());
 ipcMain.handle('create-unit', async (event, data) => {
-    try {
-        await Unit.create(data);
-        return true;
-    } catch (e) {
-        console.error('create-unit error', e);
-        return false;
-    }
+    try { await Unit.create(data); return true; } catch (e) { return false; }
 });
 ipcMain.handle('update-unit', async (event, id, data) => {
-    try {
-        await Unit.update(id, data);
-        return true;
-    } catch (e) {
-        console.error('update-unit error', e);
-        return false;
-    }
+    try { await Unit.update(id, data); return true; } catch (e) { return false; }
 });
 ipcMain.handle('delete-unit', async (event, id) => {
-    try {
-        await Unit.remove(id);
-        return true;
-    } catch (e) {
-        console.error('delete-unit error', e);
-        return false;
-    }
+    try { await Unit.remove(id); return true; } catch (e) { return false; }
 });
 ipcMain.handle('delete-product', async (event, id) => {
-    try {
-        await Product.deleteProduct(id);
-        return true;
-    } catch (e) {
-        console.error('delete-product error', e);
-        return false;
-    }
+    try { await Product.deleteProduct(id); return true; } catch (e) { return false; }
 });
+
 ipcMain.handle('get-orders', async (event, filters) => {
     try {
+        const db = await getDbConnection();
         let query = `
             SELECT o.*, COALESCE(SUM(p.amount), 0) as total_paid 
             FROM orders o 
@@ -299,11 +237,11 @@ ipcMain.handle('get-orders', async (event, filters) => {
         let params = [];
 
         if (filters && filters.start) {
-            query += " AND DATE(o.created_at) >= ?";
+            query += " AND date(o.created_at) >= date(?)";
             params.push(filters.start);
         }
         if (filters && filters.end) {
-            query += " AND DATE(o.created_at) <= ?";
+            query += " AND date(o.created_at) <= date(?)";
             params.push(filters.end);
         }
         if (filters && filters.search) {
@@ -312,16 +250,18 @@ ipcMain.handle('get-orders', async (event, filters) => {
         }
 
         query += " GROUP BY o.id ORDER BY o.created_at DESC";
-        const [rows] = await pool.query(query, params);
+        const rows = await db.all(query, params);
         return rows;
     } catch (e) {
+        console.error("get-orders error:", e);
         return [];
     }
 });
 
 ipcMain.handle('get-order-detail', async (event, id) => {
     try {
-        const [rows] = await pool.query(`
+        const db = await getDbConnection();
+        const rows = await db.all(`
             SELECT oi.*, p.name as product_name 
             FROM order_items oi 
             JOIN products p ON oi.product_id = p.id 
@@ -335,82 +275,41 @@ ipcMain.handle('get-order-detail', async (event, id) => {
 
 ipcMain.handle('get-print-data', async (event, id) => {
     try {
-        const [order] = await pool.query("SELECT * FROM orders WHERE id = ?", [id]);
-        const [items] = await pool.query("SELECT oi.*, p.name as product_name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?", [id]);
-        const [store] = await pool.query("SELECT * FROM stores LIMIT 1");
+        const db = await getDbConnection();
+        const order = await db.get("SELECT * FROM orders WHERE id = ?", [id]);
+        const items = await db.all("SELECT oi.*, p.name as product_name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?", [id]);
+        const store = await db.get("SELECT * FROM stores LIMIT 1");
         
-        return { order: order[0], items: items, store: store[0] };
+        return { order: order, items: items, store: store };
     } catch (e) {
         return null;
     }
 });
 
 ipcMain.handle('get-sales-report', async (event, filter) => {
-    try {
-        return await Report.getSalesReport(filter.start, filter.end);
-    } catch (e) {
-        console.error('get-sales-report error', e);
-        return [];
-    }
+    try { return await Report.getSalesReport(filter.start, filter.end); } catch (e) { return []; }
 });
-
 ipcMain.handle('get-product-report', async () => {
-    try {
-        return await Report.getProductReport();
-    } catch (e) {
-        console.error('get-product-report error', e);
-        return [];
-    }
+    try { return await Report.getProductReport(); } catch (e) { return []; }
 });
-
 ipcMain.handle('get-customer-report', async (event, filter) => {
-    try {
-        return await Report.getCustomerReport(filter.start, filter.end);
-    } catch (e) {
-        console.error('get-customer-report error', e);
-        return [];
-    }
+    try { return await Report.getCustomerReport(filter.start, filter.end); } catch (e) { return []; }
 });
-
 ipcMain.handle('get-payment-method-report', async (event, filter) => {
-    try {
-        return await Report.getPaymentMethodReport(filter.start, filter.end);
-    } catch (e) {
-        console.error('get-payment-method-report error', e);
-        return [];
-    }
+    try { return await Report.getPaymentMethodReport(filter.start, filter.end); } catch (e) { return []; }
 });
-
 ipcMain.handle('get-receivables-report', async () => {
-    try {
-        return await Report.getReceivablesReport();
-    } catch (e) {
-        console.error('get-receivables-report error', e);
-        return [];
-    }
+    try { return await Report.getReceivablesReport(); } catch (e) { return []; }
 });
-
 ipcMain.handle('get-income-expenditure-report', async (event, filter) => {
-    try {
-        return await Report.getIncomeExpenditureReport(filter.start, filter.end);
-    } catch (e) {
-        console.error('get-income-expenditure-report error', e);
-        return { income: [], expenditure: [] };
-    }
+    try { return await Report.getIncomeExpenditureReport(filter.start, filter.end); } catch (e) { return { income: [], expenditure: [] }; }
 });
-
 ipcMain.handle('get-profit-loss-report', async (event, filter) => {
-    try {
-        return await Report.getProfitLossReport(filter.start, filter.end);
-    } catch (e) {
-        console.error('get-profit-loss-report error', e);
-        return null;
-    }
+    try { return await Report.getProfitLossReport(filter.start, filter.end); } catch (e) { return null; }
 });
 
 let mainWindow;
 let loadingWindow;
-let prosesMariaDB = null;
 
 ipcMain.handle('create-order', async (event, data) => {
     try {
@@ -459,52 +358,7 @@ function createLoadingWindow() {
             contextIsolation: false
         }
     });
-
     loadingWindow.loadFile(path.join(__dirname, 'views', 'loading.html'));
-}
-
-function siapkanKonfigurasi() {
-    const iniPath = path.join(__dirname, 'server-db', 'my.ini');
-    const dataDir = path.join(__dirname, 'server-db', 'data').replace(/\\/g, '/'); 
-
-    if (!fs.existsSync(iniPath)) {
-        const isiIni = `[mysqld]\nport=2026\ndatadir="${dataDir}"\nbind-address=127.0.0.1\n`;
-        fs.writeFileSync(iniPath, isiIni);
-    }
-    return iniPath;
-}
-
-function siapkanFolderData() {
-    return new Promise((resolve, reject) => {
-        const dataDir = path.join(__dirname, 'server-db', 'data');
-        if (fs.existsSync(dataDir)) return resolve();
-
-        let installExe = path.join(__dirname, 'server-db', 'bin', 'mariadb-install-db.exe');
-        if (!fs.existsSync(installExe)) {
-            installExe = path.join(__dirname, 'server-db', 'bin', 'mysql_install_db.exe');
-        }
-
-        const prosesInstall = spawn(installExe, [`--datadir=${dataDir}`]);
-        prosesInstall.on('close', (code) => {
-            if (code === 0) resolve();
-            else reject(new Error(`Gagal membuat folder data. Kode error: ${code}`));
-        });
-    });
-}
-
-function jalankanMariaDB(iniPath) {
-    return new Promise((resolve, reject) => {
-        const mysqlExe = path.join(__dirname, 'server-db', 'bin', 'mysqld.exe');
-        prosesMariaDB = spawn(mysqlExe, [`--defaults-file=${iniPath}`, `--console`]);
-
-        prosesMariaDB.stdout.on('data', (data) => {
-            if (data.toString().toLowerCase().includes('ready for connections')) resolve(); 
-        });
-        prosesMariaDB.stderr.on('data', (data) => {
-            if (data.toString().toLowerCase().includes('ready for connections')) resolve();
-        });
-        prosesMariaDB.on('error', (err) => reject(err));
-    });
 }
 
 function createWindow () {
@@ -519,8 +373,7 @@ function createWindow () {
     });
 
     mainWindow.loadFile(path.join(__dirname, 'views', 'index.html'));
-
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
 
     mainWindow.once('ready-to-show', () => {
         if (loadingWindow) {
@@ -533,8 +386,8 @@ function createWindow () {
 app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
     createLoadingWindow();
+    
     loadingWindow.webContents.once('did-finish-load', async () => {
-
         const updateProgress = (teks, persentase) => {
             if (loadingWindow && !loadingWindow.isDestroyed()) {
                 loadingWindow.webContents.executeJavaScript(`
@@ -547,29 +400,19 @@ app.whenReady().then(() => {
         };
 
         try {
-
-            updateProgress('Membaca konfigurasi server Helios...', 20);
+            updateProgress('Membaca konfigurasi SQLite...', 30);
             await new Promise(r => setTimeout(r, 500));
-            const iniPath = siapkanKonfigurasi(); 
 
-            updateProgress('Merakit struktur database hermes...', 40);
-            await siapkanFolderData();            
-
-            updateProgress('Menghidupkan MariaDB Portable Engine...', 60);
-            await jalankanMariaDB(iniPath);       
-
-            updateProgress('Membidik tabel aplikasi optik...', 80);
-            await inisialisasiDatabase();         
+            updateProgress('Menginisialisasi Database...', 70);
+            await inisialisasiDatabase(); 
 
             updateProgress('Membuka antarmuka utama. Selamat bekerja!', 100);
             await new Promise(r => setTimeout(r, 400));
 
-            // Buka Jendela Utama
-            createWindow();                       
+            createWindow(); 
         } catch (error) {
             console.error('Fatal Booting Error:', error);
             updateProgress('Gagal memuat modul core! Cek konsol terminal.', 99);
-
         }
     });
 
@@ -580,10 +423,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('will-quit', () => {
-    if (prosesMariaDB) prosesMariaDB.kill(); 
 });
 
 ipcMain.handle('upload-product-image', async (event, payload) => {
@@ -629,34 +468,16 @@ ipcMain.handle('upload-product-image', async (event, payload) => {
             return { success: false, message: 'Invalid input' };
         }
     } catch (e) {
-        console.error('Unexpected upload-product-image error:', e);
         return { success: false, message: e.message };
     }
 });
 
 ipcMain.handle('create-product', async (event, data) => {
-    try {
-        await Product.create(data);
-        return true;
-    } catch (e) {
-        console.error('create-product error', e);
-        return false;
-    }
+    try { await Product.create(data); return true; } catch (e) { return false; }
 });
 ipcMain.handle('get-product', async (event, id) => {
-    try {
-        return await Product.getById(id);
-    } catch (e) {
-        console.error('get-product error', e);
-        return null;
-    }
+    try { return await Product.getById(id); } catch (e) { return null; }
 });
 ipcMain.handle('update-product', async (event, id, data) => {
-    try {
-        await Product.update(id, data);
-        return true;
-    } catch (e) {
-        console.error('update-product error', e);
-        return false;
-    }
+    try { await Product.update(id, data); return true; } catch (e) { return false; }
 });

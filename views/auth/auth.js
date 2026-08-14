@@ -1,18 +1,37 @@
-
-function initActivation() {
-    document.getElementById('form-activation').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const lisensi = document.getElementById('license-key').value;
-        const sukses = await ipcRenderer.invoke('activate-device', lisensi);
+window.initActivation = async function() {
+    try {
+        const deviceId = await ipcRenderer.invoke('check-activation');
+        const displayEl = document.getElementById('display-device-id');
         
-        if (sukses) {
-            alert('Aktivasi Berhasil! Silakan Login.');
-            window.loadPage('login');
-        } else {
-            alert('Kode Lisensi Tidak Valid untuk Komputer ini!');
+        if (displayEl) {
+            if (typeof deviceId === 'string' && deviceId !== 'true') {
+                displayEl.innerText = deviceId;
+            } else {
+                displayEl.innerText = "ERROR_DEVICE_ID";
+            }
         }
-    });
-}
+    } catch (err) {
+        console.error("Gagal memuat Device ID:", err);
+        const displayEl = document.getElementById('display-device-id');
+        if (displayEl) displayEl.innerText = "GAGAL MEMUAT";
+    }
+
+    const form = document.getElementById('form-activation');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const lisensi = document.getElementById('license-key').value;
+            const sukses = await ipcRenderer.invoke('activate-device', lisensi);
+            
+            if (sukses) {
+                alert('Aktivasi Berhasil! Silakan Login.');
+                window.loadPage('login');
+            } else {
+                alert('Kode Lisensi Tidak Valid untuk Komputer ini!');
+            }
+        });
+    }
+};
 
 window.initLogin = function() {
     const form = document.getElementById('form-login');
