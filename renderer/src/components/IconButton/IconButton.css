@@ -1,0 +1,18 @@
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #fff;
+  transition: opacity 0.15s ease;
+}
+
+.btn-icon:hover { opacity: 0.85; }
+
+.btn-icon-primary { background: #3b82f6; }
+.btn-icon-danger { background: var(--danger); }

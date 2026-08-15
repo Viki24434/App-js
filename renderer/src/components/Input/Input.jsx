@@ -1,10 +1,10 @@
 import './Input.css';
 
-export default function Input({ label, style, ...props }) {
+export default function Input({ label, style, className = '', ...props }) {
   return (
     <div className="input-group">
       {label && <label>{label}</label>}
-      <input className="input-field" style={style} {...props} />
+      <input className={`input-field ${className}`.trim()} style={style} {...props} />
     </div>
   );
 }

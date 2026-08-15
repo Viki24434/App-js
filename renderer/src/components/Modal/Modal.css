@@ -1,0 +1,9 @@
+.modal-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--dark);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -6,12 +6,13 @@ export default function Button({
   type = 'button',
   fullWidth = false,
   icon,
+  className = '',
   ...props
 }) {
   return (
     <button
       type={type}
-      className={`btn btn-${variant} ${fullWidth ? 'btn-full' : ''}`}
+      className={`btn btn-${variant} ${fullWidth ? 'btn-full' : ''} ${className}`.trim()}
       {...props}
     >
       {icon && <i className={icon}></i>}

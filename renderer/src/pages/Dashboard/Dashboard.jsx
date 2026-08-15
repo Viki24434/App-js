@@ -3,14 +3,8 @@ import { Chart } from 'chart.js/auto';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/StatCard/StatCard';
+import { formatRp } from '../../utils/format';
 import './Dashboard.css';
-
-const formatRp = (v) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(v || 0);
 
 export default function Dashboard() {
   const { user } = useAuth();

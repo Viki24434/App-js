@@ -1,0 +1,147 @@
+.create-order-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.create-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.create-order-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.create-order-layout {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.product-panel {
+  flex: 2;
+  min-width: 300px;
+  margin-bottom: 0;
+}
+
+.product-search input {
+  font-size: 16px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-top: 15px;
+}
+
+.product-tile {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: 0.2s;
+}
+
+.product-tile:hover {
+  border-color: var(--primary);
+  background: #eef2ff;
+}
+
+.product-tile b {
+  display: block;
+  font-size: 13px;
+  color: var(--dark);
+  margin-bottom: 6px;
+}
+
+.product-tile span {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.cart-panel {
+  flex: 1;
+  min-width: 300px;
+  background: #f8fafc;
+  margin-bottom: 0;
+}
+
+.cart-panel h3 {
+  margin-top: 0;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.cart-table-wrapper {
+  max-height: 250px;
+  overflow-y: auto;
+  margin: 15px 0;
+  font-size: 12px;
+}
+
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.qty-stepper button {
+  padding: 2px 6px;
+  background: #e2e8f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cart-summary {
+  border-top: 2px dashed #cbd5e1;
+  padding-top: 15px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.discount-input {
+  width: 110px;
+  padding: 6px;
+  text-align: right;
+  margin: 0;
+}
+
+.summary-total {
+  margin-top: 12px;
+  margin-bottom: 0;
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.process-order-btn {
+  margin-top: 20px;
+  padding: 14px;
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .create-order-layout {
+    flex-direction: column;
+  }
+}

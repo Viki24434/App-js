@@ -25,7 +25,7 @@
   --card-radius: 18px;
   --card-padding: 16px;
   --content-padding: 18px 22px 24px;
-  --content-max-width: 1320px;
+  --content-max-width: 100%;
 
   /* Shadow */
   --card-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);

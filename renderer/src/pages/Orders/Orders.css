@@ -1,0 +1,52 @@
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.orders-filter {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.orders-filter-search {
+  flex: 2;
+  min-width: 200px;
+}
+
+.orders-filter > .input-group {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.payment-sisa {
+  font-weight: bold;
+  color: #ef4444;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.payment-nominal-row {
+  display: flex;
+  gap: 10px;
+}
+
+.payment-nominal-row .input-field {
+  flex: 1;
+}
+
+.payment-submit {
+  margin-top: 20px;
+  justify-content: center;
+  height: 45px;
+  font-size: 14px;
+}

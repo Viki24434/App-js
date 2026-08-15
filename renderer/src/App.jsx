@@ -5,13 +5,14 @@ import Login from './pages/Login/Login';
 import Activation from './pages/Activation/Activation';
 import Dashboard from './pages/Dashboard/Dashboard';
 
-// import Orders from './pages/Orders/Orders';
-// import Products from './pages/Products/Products';
-// import Customers from './pages/Customers/Customers';
-// import Finance from './pages/Finance/Finance';
-// import Reports from './pages/Reports/Reports';
-// import Users from './pages/Users/Users';
-// import Settings from './pages/Settings/Settings';
+import Orders from './pages/Orders/Orders';
+import CreateOrder from './pages/Orders/Create';
+import Products from './pages/Products/Products';
+import Customers from './pages/Customers/Customers';
+import Finance from './pages/Finance/Finance';
+import Reports from './pages/Reports/Reports';
+import Users from './pages/Users/Users';
+import Settings from './pages/Settings/Settings';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -25,7 +26,6 @@ export default function App() {
         <Routes>
           <Route path="/activation" element={<Activation />} />
           <Route path="/login" element={<Login />} />
-
           <Route
             path="/"
             element={
@@ -35,14 +35,14 @@ export default function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            {/* Halaman-halaman berikut menyusul setelah dikirim satu per satu */}
-            {/* <Route path="orders" element={<Orders />} /> */}
-            {/* <Route path="products" element={<Products />} /> */}
-            {/* <Route path="customers" element={<Customers />} /> */}
-            {/* <Route path="finance" element={<Finance />} /> */}
-            {/* <Route path="reports" element={<Reports />} /> */}
-            {/* <Route path="users" element={<Users />} /> */}
-            {/* <Route path="settings" element={<Settings />} /> */}
+            <Route path="orders" element={<Orders />} />
+            <Route path="orders/create" element={<CreateOrder />} />
+            <Route path="products" element={<Products />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="finance" element={<Finance />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="users" element={<Users />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
       </HashRouter>
