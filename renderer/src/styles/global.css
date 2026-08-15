@@ -23,17 +23,6 @@ h1, h2, h3, h4, h5, h6 {
 h2 { font-size: 20px; }
 h3 { font-size: 16px; }
 
-/* Card generic (dipakai langsung sebagai className="card" di dalam halaman,
-   BEDA dengan komponen <Card> yang khusus untuk box auth terpusat) */
-.card {
-  background: var(--card-bg);
-  border-radius: var(--card-radius);
-  padding: var(--card-padding);
-  box-shadow: var(--card-shadow);
-  border: 1px solid var(--border-color);
-  margin-bottom: 16px;
-}
-
 table {
   width: 100%;
   border-collapse: collapse;

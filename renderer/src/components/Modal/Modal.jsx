@@ -1,10 +1,10 @@
 import './Modal.css';
 
-export default function Modal({ isOpen, onClose, title, icon, maxWidth = 500, children }) {
+export default function Modal({ isOpen, onClose, title, icon, maxWidth = 500, children, id }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" id={id}>
       <div className="modal-box" style={{ maxWidth }}>
         <button type="button" className="modal-close" onClick={onClose}>
           <i className="fas fa-times"></i>

@@ -3,6 +3,10 @@ import { Chart } from 'chart.js/auto';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/StatCard/StatCard';
+import Card from '../../components/Card/Card';
+import Table from '../../components/Table/Table';
+import Button from '../../components/Button/Button';
+import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import { formatRp } from '../../utils/format';
 import './Dashboard.css';
 
@@ -14,13 +18,11 @@ export default function Dashboard() {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
-  // Jam real-time (ganti setInterval manual + document.getElementById)
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Ambil data dashboard sekali saat halaman dibuka
   useEffect(() => {
     (async () => {
       try {
@@ -32,8 +34,6 @@ export default function Dashboard() {
     })();
   }, []);
 
-  // Render chart. Chart lama dihancurkan dulu sebelum bikin baru
-  // (versi HTML lama gak pernah destroy chart -> leak kalau halaman dibuka berkali-kali)
   useEffect(() => {
     if (!data || !chartRef.current) return;
 
@@ -80,6 +80,35 @@ export default function Dashboard() {
   const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+  const recentOrdersColumns = [
+    {
+      key: 'invoice_number',
+      label: 'No. Invoice',
+      render: (row) => <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{row.invoice_number}</span>
+    },
+    {
+      key: 'customer_name',
+      label: 'Pelanggan',
+      render: (row) => <b>{row.customer_name}</b>
+    },
+    {
+      key: 'total_amount',
+      label: 'Total Tagihan',
+      render: (row) => formatRp(row.total_amount)
+    },
+    {
+      key: 'payment_status',
+      label: 'Status',
+      headerStyle: { textAlign: 'center' },
+      cellStyle: { textAlign: 'center' },
+      render: (row) => (
+        <StatusBadge variant={row.payment_status === 'Lunas' ? 'success' : 'danger'}>
+          {row.payment_status}
+        </StatusBadge>
+      )
+    }
+  ];
+
   return (
     <div className="dash-wrapper">
       <div className="dash-header-section">
@@ -101,13 +130,13 @@ export default function Dashboard() {
       </div>
 
       <div className="main-grid">
-        <div className="panel-glass">
-          <div className="panel-header">
-            <h3>
-              <i className="fas fa-chart-line" style={{ background: 'rgba(79, 70, 229, 0.1)', color: 'var(--primary)' }}></i>
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-chart-line" style={{ background: 'rgba(79, 70, 229, 0.1)', color: 'var(--primary)', padding: '6px', borderRadius: '6px' }}></i>
               Grafik Performa Mingguan
             </h3>
-            <select style={{ width: 'auto', padding: '5px 10px', fontSize: 11 }}>
+            <select className="input-field" style={{ width: 'auto', padding: '5px 10px', fontSize: 11, margin: 0 }}>
               <option>7 Hari Terakhir</option>
               <option>30 Hari Terakhir</option>
             </select>
@@ -115,12 +144,12 @@ export default function Dashboard() {
           <div style={{ height: 300 }}>
             <canvas ref={chartRef}></canvas>
           </div>
-        </div>
+        </Card>
 
-        <div className="panel-glass">
-          <div className="panel-header">
-            <h3>
-              <i className="fas fa-fire" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}></i>
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-fire" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '6px', borderRadius: '6px' }}></i>
               Produk Terlaris
             </h3>
           </div>
@@ -144,65 +173,32 @@ export default function Dashboard() {
               ))
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       <div className="main-grid">
-        <div className="panel-glass">
-          <div className="panel-header">
-            <h3>
-              <i className="fas fa-exchange-alt" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}></i>
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-exchange-alt" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '6px', borderRadius: '6px' }}></i>
               Aktivitas Terakhir
             </h3>
-            <button onClick={() => navigate('/orders')} className="btn btn-info" style={{ padding: '5px 12px', fontSize: 11 }}>
+            <Button variant="info" onClick={() => navigate('/orders')} style={{ padding: '6px 12px', fontSize: 11 }}>
               Lihat Semua
-            </button>
+            </Button>
           </div>
-          <div className="table-responsive">
-            <table className="table-modern-mini">
-              <thead>
-                <tr>
-                  <th>No. Invoice</th>
-                  <th>Pelanggan</th>
-                  <th>Total Tagihan</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!data ? (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>Memuat riwayat...</td></tr>
-                ) : data.recentOrders.length === 0 ? (
-                  <tr><td colSpan={4} style={{ textAlign: 'center' }}>Tidak ada transaksi</td></tr>
-                ) : (
-                  data.recentOrders.map((order) => (
-                    <tr key={order.invoice_number}>
-                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{order.invoice_number}</td>
-                      <td><b>{order.customer_name}</b></td>
-                      <td>{formatRp(order.total_amount)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span
-                          className="badge-pill"
-                          style={
-                            order.payment_status === 'Lunas'
-                              ? { background: '#dcfce7', color: '#166534' }
-                              : { background: '#fee2e2', color: '#991b1b' }
-                          }
-                        >
-                          {order.payment_status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <Table 
+            columns={recentOrdersColumns} 
+            data={data?.recentOrders || []} 
+            emptyText={!data ? "Memuat riwayat..." : "Tidak ada transaksi"} 
+            keyField="invoice_number" 
+          />
+        </Card>
 
-        <div className="panel-glass low-stock-panel">
-          <div className="panel-header">
-            <h3>
-              <i className="fas fa-box-open" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}></i>
+        <Card className="low-stock-panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-box-open" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '6px', borderRadius: '6px' }}></i>
               Stok Menipis
             </h3>
           </div>
@@ -228,7 +224,7 @@ export default function Dashboard() {
               ))
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
