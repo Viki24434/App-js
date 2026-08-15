@@ -1,0 +1,9 @@
+.card {
+  margin: 80px auto;
+  padding: 40px;
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  text-align: center;
+}

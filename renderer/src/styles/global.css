@@ -1,0 +1,128 @@
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  margin: 0;
+  color: var(--text-color);
+  display: flex;
+  background:
+    radial-gradient(circle at top right, rgba(var(--primary-rgb), 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, var(--bg-body) 100%);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+
+/* Card generic (dipakai langsung sebagai className="card" di dalam halaman,
+   BEDA dengan komponen <Card> yang khusus untuk box auth terpusat) */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: var(--table-head);
+  padding: 14px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border-color);
+  letter-spacing: 0.05em;
+}
+
+th:first-child { text-align: left; }
+
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+  font-size: 13px;
+  text-align: center;
+  vertical-align: middle;
+  color: var(--text-color);
+  transition: background 0.2s ease;
+}
+
+td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+tbody tr:nth-child(even) td { background: #f8fafc; }
+tbody tr:hover td { background: #f1f5f9; }
+
+.badge {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Basis buat komponen Modal nanti */
+.modal-overlay {
+  display: flex;
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: calc(var(--card-radius) + 2px);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  position: relative;
+  padding: 22px;
+  animation: slideDown 0.28s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.modal-box.large { max-width: 900px; }
+
+@keyframes slideDown {
+  from { transform: translateY(-18px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+  position: absolute;
+  right: 15px;
+  top: 14px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.modal-close:hover { color: #ef4444; }

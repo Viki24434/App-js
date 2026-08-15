@@ -1,0 +1,26 @@
+.main-wrapper {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container-fluid {
+  padding: var(--content-padding);
+  width: 100%;
+}
+
+.content-shell {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+@media (max-width: 960px) {
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+  }
+}

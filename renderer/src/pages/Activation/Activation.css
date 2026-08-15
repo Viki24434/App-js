@@ -1,0 +1,36 @@
+.activation-header {
+  margin-bottom: 20px;
+}
+
+.activation-header i {
+  color: var(--danger);
+  margin-bottom: 20px;
+}
+
+.activation-header h2 {
+  margin: 0;
+}
+
+.activation-header p {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.device-id-box {
+  background: var(--secondary);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.device-id-box small {
+  color: var(--muted);
+  display: block;
+}
+
+.device-id-box strong {
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: 2px;
+}

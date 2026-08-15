@@ -1,0 +1,48 @@
+:root {
+  /* Warna utama (nilai asli dari views/index.html) */
+  --primary: #4f46e5;
+  --primary-rgb: 79, 70, 229;
+  --dark: #0f172a;
+
+  /* Background & surface */
+  --bg-body: #f1f5f9;
+  --navbar-bg: #ffffff;
+  --card-bg: #ffffff;
+  --table-head: #f8fafc;
+  --border-color: #e2e8f0;
+  --navbar-border: rgba(226, 232, 240, 0.9);
+
+  /* Teks */
+  --text-color: #334155;
+  --header-text-color: #0f172a;
+  --header-title-color: var(--primary);
+  --header-meta-color: #64748b;
+  --muted: #64748b;
+
+  /* Layout */
+  --sidebar-width: 68px;
+  --sidebar-hover: 228px;
+  --card-radius: 18px;
+  --card-padding: 16px;
+  --content-padding: 18px 22px 24px;
+  --content-max-width: 1320px;
+
+  /* Shadow */
+  --card-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  --header-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+
+  /* Avatar */
+  --avatar-bg: var(--primary);
+  --avatar-text: #ffffff;
+
+  /* Status warna (dipakai di Button, Alert, Badge) */
+  --danger: #ef4444;
+  --success: #10b981;
+  --info: #0ea5e9;
+  --warning: #f59e0b;
+  --secondary: #6b7280;
+
+  /* Alias, biar komponen Auth (Login/Activation) yang sudah dibuat tetap jalan tanpa diubah */
+  --text: var(--text-color);
+  --background: var(--bg-body);
+}

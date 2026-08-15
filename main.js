@@ -367,13 +367,13 @@ function createWindow () {
         height: 750,
         show: false,
         webPreferences: {
-            nodeIntegration: true, 
-            contextIsolation: false 
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js')
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'views', 'index.html'));
-    // mainWindow.webContents.openDevTools();
+    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
 
     mainWindow.once('ready-to-show', () => {
         if (loadingWindow) {
