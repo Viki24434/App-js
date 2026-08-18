@@ -21,9 +21,11 @@ export default function Products() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
 
-  const [productModal, setProductModal] = useState({ open: false, form: EMPTY_PRODUCT, file: null });
+  const [productModal, setProductModal] = useState({ open: false, form: EMPTY_PRODUCT, file: null, imagePreview: null });
   const [categoryModal, setCategoryModal] = useState({ open: false, form: EMPTY_CATEGORY });
   const [unitModal, setUnitModal] = useState({ open: false, form: EMPTY_UNIT });
+  
+  const [previewModal, setPreviewModal] = useState({ open: false, src: '', title: '' });
 
   const loadData = async () => {
     try {
@@ -44,11 +46,18 @@ export default function Products() {
     loadData();
   }, []);
 
+  const getImageUrl = (imgName) => {
+    return imgName && imgName !== 'default.png' 
+      ? `pos-file://${imgName}` 
+      : 'https://placehold.co/100x100/e2e8f0/64748b?text=No+Image'; // Placeholder jika tidak ada gambar
+  };
+
   // ===== Produk =====
   const openProductModal = (product = null) => {
     setProductModal({
       open: true,
       file: null,
+      imagePreview: product?.img && product.img !== 'default.png' ? getImageUrl(product.img) : null,
       form: product
         ? {
             id: product.id,
@@ -63,11 +72,22 @@ export default function Products() {
     });
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setProductModal({ ...productModal, file, imagePreview: previewUrl });
+    } else {
+      setProductModal({ ...productModal, file: null, imagePreview: null });
+    }
+  };
+
   const saveProduct = async (e) => {
     e.preventDefault();
     const { form, file } = productModal;
     try {
-      let imageName = 'default.png';
+      let imageName = form.id ? products.find(p => p.id === form.id)?.img || 'default.png' : 'default.png';
+      
       if (file) {
         const buffer = await file.arrayBuffer();
         const uploadRes = await window.api.uploadProductImage({ buffer });
@@ -90,7 +110,7 @@ export default function Products() {
         await window.api.createProduct(payload);
       }
 
-      setProductModal({ open: false, form: EMPTY_PRODUCT, file: null });
+      setProductModal({ open: false, form: EMPTY_PRODUCT, file: null, imagePreview: null });
       loadData();
     } catch (err) {
       setError('Gagal menyimpan produk.');
@@ -104,56 +124,30 @@ export default function Products() {
     }
   };
 
-  // ===== Kategori =====
-  const openCategoryModal = (cat = null) => {
-    setCategoryModal({ open: true, form: cat ? { id: cat.id, name: cat.name } : EMPTY_CATEGORY });
-  };
-
+  const openCategoryModal = (cat = null) => setCategoryModal({ open: true, form: cat ? { id: cat.id, name: cat.name } : EMPTY_CATEGORY });
   const saveCategory = async (e) => {
     e.preventDefault();
     const { form } = categoryModal;
-    if (form.id) {
-      await window.api.updateCategory(form.id, { name: form.name });
-    } else {
-      await window.api.createCategory({ name: form.name });
-    }
+    if (form.id) await window.api.updateCategory(form.id, { name: form.name });
+    else await window.api.createCategory({ name: form.name });
     setCategoryModal({ open: false, form: EMPTY_CATEGORY });
     loadData();
   };
-
   const deleteCategory = async (id) => {
-    if (confirm('Hapus kategori ini?')) {
-      await window.api.deleteCategory(id);
-      loadData();
-    }
+    if (confirm('Hapus kategori ini?')) { await window.api.deleteCategory(id); loadData(); }
   };
 
-  // ===== Satuan =====
-  const openUnitModal = (unit = null) => {
-    setUnitModal({
-      open: true,
-      form: unit ? { id: unit.id, name: unit.name, symbol: unit.symbol } : EMPTY_UNIT,
-    });
-  };
-
+  const openUnitModal = (unit = null) => setUnitModal({ open: true, form: unit ? { id: unit.id, name: unit.name, symbol: unit.symbol } : EMPTY_UNIT });
   const saveUnit = async (e) => {
     e.preventDefault();
     const { form } = unitModal;
-    const payload = { name: form.name, symbol: form.symbol };
-    if (form.id) {
-      await window.api.updateUnit(form.id, payload);
-    } else {
-      await window.api.createUnit(payload);
-    }
+    if (form.id) await window.api.updateUnit(form.id, { name: form.name, symbol: form.symbol });
+    else await window.api.createUnit({ name: form.name, symbol: form.symbol });
     setUnitModal({ open: false, form: EMPTY_UNIT });
     loadData();
   };
-
   const deleteUnit = async (id) => {
-    if (confirm('Hapus satuan ini?')) {
-      await window.api.deleteUnit(id);
-      loadData();
-    }
+    if (confirm('Hapus satuan ini?')) { await window.api.deleteUnit(id); loadData(); }
   };
 
   const filteredProducts = products.filter(
@@ -163,10 +157,24 @@ export default function Products() {
   );
 
   const productColumns = [
+    { 
+      key: 'img', 
+      label: 'Gambar',
+      headerStyle: { width: '60px', textAlign: 'center' },
+      cellStyle: { textAlign: 'center' },
+      render: (p) => (
+        <img 
+          src={getImageUrl(p.img)} 
+          alt={p.name} 
+          style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', display: 'block', margin: '0 auto' }}
+          onClick={() => setPreviewModal({ open: true, src: getImageUrl(p.img), title: p.name })}
+        />
+      )
+    },
     { key: 'code', label: 'Kode' },
     { key: 'name', label: 'Nama Produk', render: (p) => <b>{p.name}</b> },
     { key: 'category_name', label: 'Kategori', render: (p) => p.category_name || '-' },
-    { key: 'stock', label: 'Stok' },
+    { key: 'stock', label: 'Stok', cellStyle: { textAlign: 'center' }, render: (p) => <span className="badge-pill" style={{ background: '#f1f5f9' }}>{p.stock}</span> },
     { key: 'price', label: 'Harga Jual', render: (p) => formatRp(p.price) },
   ];
 
@@ -193,7 +201,7 @@ export default function Products() {
       />
 
       <div className="card products-table-card">
-        <div className="products-search">
+        <div className="products-search" style={{ marginBottom: '15px', maxWidth: '300px' }}>
           <Input
             placeholder="Cari nama produk atau kode..."
             value={search}
@@ -210,7 +218,7 @@ export default function Products() {
         />
       </div>
 
-      <div className="products-grid">
+      <div className="products-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
         <div>
           <PageHeader
             icon="fas fa-tags"
@@ -252,124 +260,177 @@ export default function Products() {
         </div>
       </div>
 
-      {/* Modal Produk */}
+      <Modal 
+        id="modal-preview-img"
+        isOpen={previewModal.open} 
+        onClose={() => setPreviewModal({ open: false, src: '', title: '' })} 
+        title={previewModal.title}
+        icon="fas fa-image"
+        maxWidth={500}
+      >
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <img 
+            src={previewModal.src} 
+            alt={previewModal.title} 
+            style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', borderRadius: '12px', border: '1px solid var(--border-color)' }} 
+          />
+        </div>
+      </Modal>
+
       <Modal
+        id="modal-product"
         isOpen={productModal.open}
         onClose={() => setProductModal({ ...productModal, open: false })}
         icon="fas fa-box"
         title={productModal.form.id ? 'Edit Produk' : 'Tambah Produk Baru'}
       >
         <form onSubmit={saveProduct}>
-          <div className="form-row">
-            <Input
-              label="Kode Produk"
-              placeholder="Otomatis"
-              value={productModal.form.code}
-              onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, code: e.target.value } })}
-            />
-            <Input
-              label="Nama Produk *"
-              required
-              value={productModal.form.name}
-              onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, name: e.target.value } })}
-            />
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                label="Kode Produk"
+                placeholder="Otomatis"
+                value={productModal.form.code}
+                onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, code: e.target.value } })}
+              />
+            </div>
+            <div style={{ flex: 2 }}>
+              <Input
+                label="Nama Produk *"
+                required
+                value={productModal.form.name}
+                onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, name: e.target.value } })}
+              />
+            </div>
           </div>
 
-          <div className="form-row">
-            <Select
-              label="Kategori"
-              value={productModal.form.category_id}
-              onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, category_id: e.target.value } })}
-            >
-              <option value="">Pilih...</option>
-              {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </Select>
-            <Select
-              label="Satuan"
-              value={productModal.form.unit_id}
-              onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, unit_id: e.target.value } })}
-            >
-              <option value="">Pilih...</option>
-              {units.map((u) => (<option key={u.id} value={u.id}>{u.name}</option>))}
-            </Select>
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <Select
+                label="Kategori"
+                value={productModal.form.category_id}
+                onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, category_id: e.target.value } })}
+              >
+                <option value="">Pilih...</option>
+                {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </Select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Select
+                label="Satuan"
+                value={productModal.form.unit_id}
+                onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, unit_id: e.target.value } })}
+              >
+                <option value="">Pilih...</option>
+                {units.map((u) => (<option key={u.id} value={u.id}>{u.name}</option>))}
+              </Select>
+            </div>
           </div>
 
-          <div className="form-row">
-            <Input
-              label="Harga Jual (Rp) *"
-              type="number"
-              min="0"
-              required
-              value={productModal.form.price}
-              onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, price: e.target.value } })}
-            />
-            <Input
-              label="Stok Awal"
-              type="number"
-              min="0"
-              value={productModal.form.stock}
-              onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, stock: e.target.value } })}
-            />
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                label="Harga Jual (Rp) *"
+                type="number"
+                min="0"
+                required
+                value={productModal.form.price}
+                onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, price: e.target.value } })}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Input
+                label="Stok Awal"
+                type="number"
+                min="0"
+                value={productModal.form.stock}
+                onChange={(e) => setProductModal({ ...productModal, form: { ...productModal.form, stock: e.target.value } })}
+              />
+            </div>
           </div>
 
-          <div className="input-group">
-            <label>Gambar Produk</label>
-            <input
-              type="file"
-              className="input-field"
-              accept="image/*"
-              onChange={(e) => setProductModal({ ...productModal, file: e.target.files[0] })}
-            />
+          <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '2px solid white', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+              {productModal.imagePreview ? (
+                <img src={productModal.imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <i className="fas fa-image" style={{ color: '#94a3b8', fontSize: '24px' }}></i>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--dark)', display: 'block', marginBottom: '6px' }}>Upload Gambar Produk (Opsional)</label>
+              <input
+                type="file"
+                className="input-field"
+                accept="image/png, image/jpeg, image/webp"
+                onChange={handleFileChange}
+                style={{ padding: '6px' }}
+              />
+            </div>
           </div>
 
-          <Button type="submit" variant="success" fullWidth>
-            Simpan Produk
-          </Button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button type="submit" variant="success" fullWidth style={{ justifyContent: 'center', height: '42px' }}>
+              Simpan Produk
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setProductModal({ ...productModal, open: false })}>
+              Batal
+            </Button>
+          </div>
         </form>
       </Modal>
 
-      {/* Modal Kategori */}
       <Modal
+        id="modal-category"
         isOpen={categoryModal.open}
         onClose={() => setCategoryModal({ ...categoryModal, open: false })}
-        title="Kategori"
+        title={categoryModal.form.id ? "Edit Kategori" : "Tambah Kategori"}
+        icon="fas fa-tags"
         maxWidth={400}
       >
         <form onSubmit={saveCategory}>
-          <Input
-            label="Nama Kategori"
-            required
-            value={categoryModal.form.name}
-            onChange={(e) => setCategoryModal({ ...categoryModal, form: { ...categoryModal.form, name: e.target.value } })}
-          />
-          <div className="modal-actions">
-            <Button type="submit" variant="success">Simpan</Button>
+          <div style={{ marginBottom: '20px' }}>
+            <Input
+              label="Nama Kategori"
+              required
+              value={categoryModal.form.name}
+              onChange={(e) => setCategoryModal({ ...categoryModal, form: { ...categoryModal.form, name: e.target.value } })}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button type="submit" variant="success" fullWidth style={{ justifyContent: 'center' }}>Simpan</Button>
             <Button type="button" variant="secondary" onClick={() => setCategoryModal({ ...categoryModal, open: false })}>Batal</Button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal Satuan */}
       <Modal
+        id="modal-unit"
         isOpen={unitModal.open}
         onClose={() => setUnitModal({ ...unitModal, open: false })}
-        title="Satuan"
+        title={unitModal.form.id ? "Edit Satuan" : "Tambah Satuan"}
+        icon="fas fa-ruler-combined"
         maxWidth={400}
       >
         <form onSubmit={saveUnit}>
-          <Input
-            label="Nama Satuan"
-            required
-            value={unitModal.form.name}
-            onChange={(e) => setUnitModal({ ...unitModal, form: { ...unitModal.form, name: e.target.value } })}
-          />
-          <Input
-            label="Simbol"
-            value={unitModal.form.symbol}
-            onChange={(e) => setUnitModal({ ...unitModal, form: { ...unitModal.form, symbol: e.target.value } })}
-          />
-          <div className="modal-actions">
-            <Button type="submit" variant="success">Simpan</Button>
+          <div style={{ marginBottom: '12px' }}>
+            <Input
+              label="Nama Satuan"
+              required
+              value={unitModal.form.name}
+              onChange={(e) => setUnitModal({ ...unitModal, form: { ...unitModal.form, name: e.target.value } })}
+            />
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <Input
+              label="Simbol (Opsional)"
+              placeholder="Contoh: Pcs, Kg, Box"
+              value={unitModal.form.symbol}
+              onChange={(e) => setUnitModal({ ...unitModal, form: { ...unitModal.form, symbol: e.target.value } })}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button type="submit" variant="success" fullWidth style={{ justifyContent: 'center' }}>Simpan</Button>
             <Button type="button" variant="secondary" onClick={() => setUnitModal({ ...unitModal, open: false })}>Batal</Button>
           </div>
         </form>

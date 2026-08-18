@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { inisialisasiDatabase, getDbConnection } = require('../config/db');
@@ -379,6 +379,17 @@ function createWindow () {
 app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
     createLoadingWindow();
+
+    protocol.registerFileProtocol('pos-file', (request, callback) => {
+    const url = request.url.replace('pos-file://', '');
+    try {
+      const filePath = path.join(app.getPath('userData'), 'uploads', 'product', url);
+      return callback(filePath);
+    } catch (error) {
+      console.error('Gagal memuat gambar:', error);
+      return callback('');
+    }
+  });
     
     loadingWindow.webContents.once('did-finish-load', async () => {
         const updateProgress = (teks, persentase) => {
@@ -423,9 +434,11 @@ ipcMain.handle('upload-product-image', async (event, payload) => {
 
     const fileName = `prod_${Date.now()}.webp`;
     const destPath = path.join(uploadDir, fileName);
+    
     try {
         if (payload && payload.buffer) {
-            const buf = payload.buffer;
+            const buf = Buffer.from(payload.buffer);
+            
             try {
                 await sharp(buf)
                     .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
@@ -457,7 +470,7 @@ ipcMain.handle('upload-product-image', async (event, payload) => {
                 }
             }
         } else {
-            return { success: false, message: 'Invalid input' };
+            return { success: false, message: 'Format input gambar tidak valid' };
         }
     } catch (e) {
         return { success: false, message: e.message };
@@ -472,4 +485,16 @@ ipcMain.handle('get-product', async (event, id) => {
 });
 ipcMain.handle('update-product', async (event, id, data) => {
     try { await Product.update(id, data); return true; } catch (e) { return false; }
+});
+
+ipcMain.handle('get-ip-address', () => {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
 });

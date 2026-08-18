@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('api', {
   login: (credentials) => ipcRenderer.invoke('auth-login', credentials),
   logout: () => ipcRenderer.invoke('auth-logout'),
   checkAuth: () => ipcRenderer.invoke('check-auth'),
+  getIpAddress: () => ipcRenderer.invoke('get-ip-address'),
 
   // ===== Dashboard =====
   getDashboardData: () => ipcRenderer.invoke('get-dashboard-data'),
