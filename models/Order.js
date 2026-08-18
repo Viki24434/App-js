@@ -1,5 +1,5 @@
-const { getDbConnection } = require('../config/db');
-const Finance = require('./Finance'); 
+import { getDbConnection } from '../config/db.js';
+import { updateBalance } from './Finance.js'; 
 const STORE_ID = 1;
 
 async function getAllOrders(date = null) {
@@ -15,7 +15,7 @@ async function getAllOrders(date = null) {
         params.push(date);
     }
     sql += " ORDER BY o.created_at DESC";
-    const rows = await db.all(sql, params);
+    const rows = await db.get(sql, params);
     return rows;
 }
 
@@ -71,7 +71,7 @@ async function addPayment(order_id, user_id, method, amount) {
     );
     
     const today = new Date().toISOString().split('T')[0];
-    await Finance.updateBalance(today);
+    await updateBalance(today);
 
     const paidRow = await db.get("SELECT SUM(amount) as paid FROM payments WHERE order_id = ?", [order_id]);
     const paid = paidRow.paid || 0;
@@ -82,4 +82,4 @@ async function addPayment(order_id, user_id, method, amount) {
     await db.run("UPDATE orders SET payment_status = ? WHERE id = ?", [pS, order_id]);
 }
 
-module.exports = { getAllOrders, getOrderById, getOrderItems, createOrder, updateStatus, addPayment };
+export { getAllOrders, getOrderById, getOrderItems, createOrder, updateStatus, addPayment };

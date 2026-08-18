@@ -1,4 +1,4 @@
-const { getDbConnection } = require('../config/db');
+import { getDbConnection } from '../config/db.js';
 const STORE_ID = 1;
 
 async function getCustomers() {
@@ -31,4 +31,4 @@ async function deleteCustomer(id) {
     return result;
 }
 
-module.exports = { getCustomers, addCustomer, updateCustomer, deleteCustomer };
+export { getCustomers, addCustomer, updateCustomer, deleteCustomer };

@@ -1,7 +1,11 @@
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const fs = require('fs');
-const path = require('path');
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let dbInstance = null;
 
@@ -9,7 +13,7 @@ async function getDbConnection() {
     if (!dbInstance) {
         dbInstance = await open({
             filename: path.join(__dirname, '..', 'db_percetakan.sqlite'),
-            driver: sqlite3.Database
+            driver: sqlite3.verbose().Database
         });
         
         await dbInstance.run('PRAGMA foreign_keys = ON');
@@ -20,8 +24,6 @@ async function getDbConnection() {
 async function inisialisasiDatabase() {
     try {
         const db = await getDbConnection();
-        const fs = require('fs');
-        const path = require('path');
 
         const userTable = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users'`);
 
@@ -82,8 +84,7 @@ async function inisialisasiDatabase() {
     }
 }
 
-// Ekspor koneksi dan fungsi inisialisasi
-module.exports = {
+export {
     getDbConnection,
     inisialisasiDatabase
 };

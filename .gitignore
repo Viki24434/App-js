@@ -8,11 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-server-db
 dist
 dist-ssr
 *.local
-aktivasi.html
 
 # Editor directories and files
 .vscode/*

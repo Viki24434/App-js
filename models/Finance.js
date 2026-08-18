@@ -1,4 +1,4 @@
-const { getDbConnection } = require('../config/db');
+import { getDbConnection } from '../config/db.js';
 const STORE_ID = 1;
 
 async function updateBalance(date) {
@@ -96,4 +96,4 @@ async function storeExpenditure(data) {
     return result;
 }
 
-module.exports = { updateBalance, getSummary, storeIncome, storeExpenditure };
+export { updateBalance, getSummary, storeIncome, storeExpenditure };

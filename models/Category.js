@@ -1,4 +1,4 @@
-const { getDbConnection } = require('../config/db');
+import { getDbConnection } from '../config/db.js';
 
 async function getAll() {
     const db = await getDbConnection();
@@ -24,4 +24,4 @@ async function update(id, data) {
     return result;
 }
 
-module.exports = { getAll, create, remove, update };
+export { getAll, create, remove, update };

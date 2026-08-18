@@ -1,4 +1,4 @@
-const { getDbConnection } = require('../config/db');
+import { getDbConnection } from '../config/db.js';
 const STORE_ID = 1;
 
 function getRandomInt(min, max) {
@@ -92,4 +92,4 @@ async function updateStock(id, qty) {
     return result;
 }
 
-module.exports = { getAll, getById, getByCategory, create, update, deleteProduct, updateStock };
+export { getAll, getById, getByCategory, create, update, deleteProduct, updateStock };

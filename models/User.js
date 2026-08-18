@@ -1,5 +1,5 @@
-const { getDbConnection } = require('../config/db');
-const bcrypt = require('bcrypt');
+import { getDbConnection } from '../config/db.js';
+import bcrypt from 'bcrypt';
 const STORE_ID = 1;
 
 async function getAll() {
@@ -59,4 +59,4 @@ async function deleteUser(id, currentUserId) {
     return result;
 }
 
-module.exports = { getAll, getStats, create, update, deleteUser };
+export { getAll, getStats, create, update, deleteUser };
